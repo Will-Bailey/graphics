@@ -10,6 +10,8 @@ import Objects.*;
 
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseEvent;
 
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GLAutoDrawable;
@@ -20,13 +22,14 @@ import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.glu.GLU;
 
-public class Framework extends JFrame implements KeyListener,  GLEventListener{
+public class Framework extends JFrame implements KeyListener,  GLEventListener, MouseMotionListener{
     final GLCanvas canvas;
     final FPSAnimator animator=new FPSAnimator(60, true);
 
     private Transform T = new Transform();
 
-    private float[] cameraPos = new float[6];
+    private float[] cameraPos = new float[3];
+    private float[] cameraRot = new float[2];
 
     private int idPoint=0, numVAOs = 2;
     private int idBuffer=0, numVBOs = 2;
@@ -48,10 +51,9 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener{
         cameraPos[0] = 0f;
         cameraPos[1] = 0f;
         cameraPos[2] = 0f;
-        cameraPos[3] = 0f;
-        cameraPos[4] = 0f;
-        cameraPos[5] = -100f;
 
+        cameraRot[0] = 0f;
+        cameraRot[1] = 0f;
 
         GLProfile glp = GLProfile.get(GLProfile.GL3);
         GLCapabilities capabilities = new GLCapabilities(glp);
@@ -60,6 +62,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener{
         add(canvas, java.awt.BorderLayout.CENTER);
         canvas.addGLEventListener(this);
         canvas.addKeyListener(this);
+        canvas.addMouseMotionListener(this);
         animator.add(canvas);
 
         setSize(500,500);
@@ -82,7 +85,8 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener{
         T.rotateX(-90);
         T.translate(0, -0.4f, 0);
 
-        gl.glUniformMatrix4fv(ModelView, 1, true, T.getInvTransformv(), 0);          
+
+        gl.glUniformMatrix4fv(ModelView, 1, true, T.getTransformv(), 0);          
 
         idPoint=0;
         idBuffer=0;
@@ -92,13 +96,19 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener{
 
         T.scale(0.5f,0.5f,0.5f);
         T.translate(0, 0.7f, 0);
+
+        T.translate(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
+        T.rotateX(cameraRot[0]);
+        T.rotateY(cameraRot[1]);
+        
         gl.glUniformMatrix4fv( ModelView, 1, true, T.getTransformv(), 0 );          
 
         idPoint=1;
         idBuffer=1;
         idElement=1;
         bindObject(gl);
-        gl.glDrawElements(GL_TRIANGLES, numElements[idElement], GL_UNSIGNED_INT, 0);   
+        gl.glDrawElements(GL_TRIANGLES, numElements[idElement], GL_UNSIGNED_INT, 0);
+
     }
     
     @Override
@@ -206,49 +216,26 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener{
     @Override
     public void keyPressed(KeyEvent e){
         char pressed = e.getKeyChar();
-        
-        float ex = cameraPos[0];
-        float ey = cameraPos[1];
-        float ez = cameraPos[2];
-        float ax = cameraPos[3];
-        float ay = cameraPos[4];
-        float az = cameraPos[5];
-        float ux;
-        float uy;
-        float uz;
 
         float step = 0.05f;
             
-
         if (pressed == 'w'){
             System.out.println("camera forward");
-            ex = ex + step;
-            ax = ax + step;
-            cameraPos[0] = ex+step;
-            cameraPos[3] = ax+step;
+            cameraPos[2] = cameraPos[2] + step;
 
         } else if (pressed == 'a'){
             System.out.println("camera left");
-            ez = ez - step;
-            az = az - step;
-            cameraPos[2] = ez-step;
-            cameraPos[5] = az-step;
+            cameraPos[0] = cameraPos[0] - step;
 
         } else if (pressed == 's'){
             System.out.println("camera back");
-            ex = ex - step;
-            ax = ax - step;
-            cameraPos[0] = ex-step;
-            cameraPos[3] = ax-step;
+            cameraPos[2] = cameraPos[2] - step;
 
         } else if (pressed == 'd'){
             System.out.println("camera right");
-            ez = ez + step;
-            az = az + step;
-            cameraPos[2] = ez+step;
-            cameraPos[5] = az+step;
+            cameraPos[0] = cameraPos[0] + step;
         }
-        T.lookAt(ex, ey, ez, ax, ay, az, ax-ex, az-ez, ay-ey);
+        System.out.println(Float.toString(cameraPos[0]));
     }
 
     @Override
@@ -258,6 +245,17 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener{
     public void keyTyped(KeyEvent e) {
         keyPressed(e);
     };
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        int dx = e.getX();
+        int dy = e.getY();
+
+        cameraRot[0] = cameraRot[0]+0.005f*dx;
+        cameraRot[1] = cameraRot[0]+0.005f*dy;
+    }
+    @Override
+    public void mouseMoved(MouseEvent e){}
     
     public static void main(String[] args) {
         new Framework();
