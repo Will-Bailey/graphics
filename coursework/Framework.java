@@ -1,26 +1,38 @@
-import static com.jogamp.opengl.GL3.*;
-
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-
-import javax.swing.JFrame;
 
 import Basic.*;
-import Objects.*;
 
-import java.awt.event.KeyListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseMotionListener;
-import java.awt.event.MouseEvent;
-
+import static com.jogamp.opengl.GL3.*;
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLCapabilities;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
-import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.glu.GLU;
+import com.jogamp.opengl.util.FPSAnimator;
+
+import java.awt.event.KeyListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+
+import javax.imageio.ImageIO;
+
+import java.io.IOException;
+import java.io.FileInputStream;
+
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.nio.ByteBuffer;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.swing.JFrame;
+
+import Objects.*;
 
 public class Framework extends JFrame implements KeyListener,  GLEventListener, MouseMotionListener{
     final GLCanvas canvas;
@@ -28,6 +40,8 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
 
     private Transform T = new Transform();
 
+    private int xMouse;
+    private int yMouse;
     private float[] cameraPos = new float[3];
     private float[] cameraRot = new float[2];
 
@@ -39,11 +53,28 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
     private int[] EBOs = new int[numEBOs];
 
     private int[] numElements = new int[numEBOs];
-    private long vertexSize; 
     private int vPosition;
+    private int vColour;
+    private int vTexCoord;
+    private int vNormal;
+
+    long coordSize;
+    long colourSize;
+    long texSize;
+    long vertexSize;
+    long normalSize;
+
+    float[] vertexCoord = {0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0};
+    float[] texCoord = {0, 0, 1, 0, 0, 1, 1, 1};
+    float[] vertexColours = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    int[] vertexIndexs = {0, 1, 2, 2, 1, 3};
     
     private int ModelView;
+    private int NormalTransform;
     private int Projection;
+
+    ByteBuffer texImg;
+    private int texWidth, texHeight;
 
     public Framework() {
         super("KeyListener Activity");
@@ -77,17 +108,19 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         GL3 gl = drawable.getGL().getGL3(); // Get the GL pipeline object this 
         
         gl.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-        gl.glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+        
         T.initialize();
-        //T.lookAt(cameraPos[0], cameraPos[1], cameraPos[2], cameraPos[3], cameraPos[4], cameraPos[5], 0f, 1f, 0f);    
+        T.translate(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
+        T.rotateX(cameraRot[0]);
+        T.rotateY(cameraRot[1]);
+        
         T.scale(0.5f, 0.5f, 0.5f);
         T.rotateX(-90);
         T.translate(0, -0.4f, 0);
 
-
         gl.glUniformMatrix4fv(ModelView, 1, true, T.getTransformv(), 0);          
-
+        gl.glUniformMatrix4fv(NormalTransform, 1, true, T.getInvTransformTv(), 0);
+        
         idPoint=0;
         idBuffer=0;
         idElement=0;
@@ -97,11 +130,9 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         T.scale(0.5f,0.5f,0.5f);
         T.translate(0, 0.7f, 0);
 
-        T.translate(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
-        T.rotateX(cameraRot[0]);
-        T.rotateY(cameraRot[1]);
-        
-        gl.glUniformMatrix4fv( ModelView, 1, true, T.getTransformv(), 0 );          
+
+        gl.glUniformMatrix4fv(ModelView, 1, true, T.getTransformv(), 0 );
+        gl.glUniformMatrix4fv(NormalTransform, 1, true, T.getInvTransformTv(), 0 );
 
         idPoint=1;
         idBuffer=1;
@@ -113,46 +144,47 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
     
     @Override
     public void init(GLAutoDrawable drawable) {
-        GL3 gl = drawable.getGL().getGL3(); // Get the GL pipeline object this 
-
+        //Init GL
+        GL3 gl = drawable.getGL().getGL3();
         System.out.print("GL_Version: " + gl.glGetString(GL_VERSION));
         
-        gl.glEnable(GL_CULL_FACE); 
-
-        //compile and use the shader program
-        ShaderProg shaderproc = new ShaderProg(gl, "TransProj.vert", "TransProj.frag");
-        int program = shaderproc.getProgram();
-        gl.glUseProgram(program);
-
-        // Initialize the vertex position and normal attribute in the vertex shader    
-        vPosition = gl.glGetAttribLocation( program, "vPosition" );
-        gl.glGetAttribLocation( program, "vNormal" );
-
-        // Get connected with the ModelView, NormalTransform, and Projection matrices
-        // in the vertex shader
-        ModelView = gl.glGetUniformLocation(program, "ModelView");
-        Projection = gl.glGetUniformLocation(program, "Projection");
-
-        
-        // Generate VAOs, VBOs, and EBOs
+        //Init VAOs, VBOs and EBOs
         gl.glGenVertexArrays(numVAOs,VAOs,0);
         gl.glGenBuffers(numVBOs, VBOs,0);
         gl.glGenBuffers(numEBOs, EBOs,0);
 
-        //create the first object: a teapot
+
+        //Init Texture
+        ShaderProg texturer = new ShaderProg(gl, "ColourTex.vert", "ColourTex.frag");
+        int tProgram = texturer.getProgram();
+        gl.glUseProgram(tProgram);
+
+        //Init Shader
+        ShaderProg shaderproc = new ShaderProg(gl, "Gouraud.vert", "Gouraud.frag");
+        int program = shaderproc.getProgram();
+        gl.glUseProgram(program);
+
+        //Init Objects      
         SObject sphere = new SSphere(1, 40, 40);
         idPoint=0;
         idBuffer=0;
         idElement=0;
         createObject(gl, sphere);
+        runShader(gl, program);
 
         SObject teapot = new STeapot(2);
         idPoint=1;
         idBuffer=1;
         idElement=1;
         createObject(gl, teapot);
+        runShader(gl, program);
 
-        gl.glEnable(GL_DEPTH_TEST);         
+        //Init Views
+        ModelView = gl.glGetUniformLocation(program, "ModelView");
+        Projection = gl.glGetUniformLocation(program, "Projection");
+        NormalTransform = gl.glGetUniformLocation(program, "NormalTransform");
+
+        gl.glEnable(GL_DEPTH_TEST);
     }
 
     @Override
@@ -184,22 +216,36 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
 
     public void createObject(GL3 gl, SObject obj) {
         float [] vertexArray = obj.getVertices();
+        float [] normalArray = obj.getNormals();
         int [] vertexIndexs =obj.getIndices();
         numElements[idElement] = obj.getNumIndices();
 
-        bindObject(gl);
-        
+        gl.glBindVertexArray(VAOs[idPoint]);
+        gl.glBindBuffer(GL_ARRAY_BUFFER, VBOs[idBuffer]);
+        gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[idElement]);          
+
+        FloatBuffer data = FloatBuffer.wrap(vertexCoord);
+        FloatBuffer colours = FloatBuffer.wrap(vertexColours);
+        FloatBuffer textures = FloatBuffer.wrap(texCoord);
+        coordSize = vertexCoord.length*(Float.SIZE/8);
+        colourSize = vertexColours.length*(Float.SIZE/8);
+        texSize = texCoord.length*(Float.SIZE/8);
+        gl.glBufferData(GL_ARRAY_BUFFER, coordSize + colourSize + texSize, null, GL_STATIC_DRAW);
+        gl.glBufferSubData( GL_ARRAY_BUFFER, 0, coordSize, data);
+        gl.glBufferSubData( GL_ARRAY_BUFFER, coordSize, colourSize, colours);
+        gl.glBufferSubData( GL_ARRAY_BUFFER, coordSize + colourSize, texSize, textures);
+
         FloatBuffer vertices = FloatBuffer.wrap(vertexArray);
-
+        FloatBuffer normals = FloatBuffer.wrap(normalArray);
         vertexSize = vertexArray.length*(Float.SIZE/8);
-        gl.glBufferData(GL_ARRAY_BUFFER, vertexSize, 
-                vertices, GL_STATIC_DRAW);
+        normalSize = normalArray.length*(Float.SIZE/8);
+        gl.glBufferData(GL_ARRAY_BUFFER, vertexSize + normalSize, vertices, GL_STATIC_DRAW);
+        gl.glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertices);
+        gl.glBufferSubData(GL_ARRAY_BUFFER, vertexSize, normalSize, normals);
         
-        IntBuffer elements = IntBuffer.wrap(vertexIndexs);          
-
+        IntBuffer elements = IntBuffer.wrap(vertexIndexs);
         long indexSize = vertexIndexs.length*(Integer.SIZE/8);
-        gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, 
-                elements, GL_STATIC_DRAW);                       
+        gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, elements, GL_STATIC_DRAW);
         gl.glEnableVertexAttribArray(vPosition);
         gl.glVertexAttribPointer(vPosition, 3, GL_FLOAT, false, 0, 0L);
     }
@@ -209,6 +255,65 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         gl.glBindBuffer(GL_ARRAY_BUFFER, VBOs[idBuffer]);
         gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[idElement]);          
     }
+
+    public void runShader(GL3 gl, int program){
+        vPosition = gl.glGetAttribLocation( program, "vPosition" );
+        gl.glGetAttribLocation( program, "vNormal" );
+        gl.glVertexAttribPointer(vPosition, 3, GL_FLOAT, false, 0, 0L);
+
+        vNormal = gl.glGetAttribLocation(program, "vNormal");
+        gl.glEnableVertexAttribArray(vNormal);
+        gl.glVertexAttribPointer(vNormal, 3, GL_FLOAT, false, 0, vertexSize);
+        
+        float[] lightPosition = {100.0f, 100.0f, 100.0f, 0.0f};
+        Vec4 lightAmbient = new Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        Vec4 lightDiffuse = new Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        Vec4 lightSpecular = new Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+        //Brass material
+        Vec4 materialAmbient = new Vec4(0.329412f, 0.223529f, 0.027451f, 1.0f);
+        Vec4 materialDiffuse = new Vec4(0.780392f, 0.568627f, 0.113725f, 1.0f);
+        Vec4 materialSpecular = new Vec4(0.992157f, 0.941176f, 0.807843f, 1.0f);
+        float  materialShininess = 27.8974f;
+        
+        Vec4 ambientProduct = lightAmbient.times(materialAmbient);
+        float[] ambient = ambientProduct.getVector();
+        Vec4 diffuseProduct = lightDiffuse.times(materialDiffuse);
+        float[] diffuse = diffuseProduct.getVector();
+        Vec4 specularProduct = lightSpecular.times(materialSpecular);
+        float[] specular = specularProduct.getVector();
+
+        gl.glUniform4fv( gl.glGetUniformLocation(program, "AmbientProduct"), 1, ambient, 0);
+        gl.glUniform4fv( gl.glGetUniformLocation(program, "DiffuseProduct"), 1, diffuse, 0);
+        gl.glUniform4fv( gl.glGetUniformLocation(program, "SpecularProduct"), 1, specular, 0);
+        
+        gl.glUniform4fv( gl.glGetUniformLocation(program, "LightPosition"), 1, lightPosition, 0);
+        gl.glUniform1f( gl.glGetUniformLocation(program, "Shininess"), materialShininess);
+    }
+
+    public void runTexture(GL3 gl, int tProgram){
+        vColour = gl.glGetAttribLocation(tProgram, "vColour");
+        gl.glEnableVertexAttribArray(vColour);
+        gl.glVertexAttribPointer(vColour, 3, GL_FLOAT, false, 0, coordSize);
+
+        vTexCoord = gl.glGetAttribLocation(tProgram, "vTexCoord");
+        gl.glEnableVertexAttribArray( vTexCoord );
+        gl.glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, false, 0, coordSize+colourSize);
+        
+        gl.glUniform1i( gl.glGetUniformLocation(tProgram, "tex"), 0 );
+    }
+
+    private ByteBuffer readImage(String filename) throws IOException {
+
+            ByteBuffer imgbuf;
+            BufferedImage img = ImageIO.read(new FileInputStream(filename));
+
+            texWidth = img.getWidth();
+            texHeight = img.getHeight();
+            DataBufferByte datbuf = (DataBufferByte) img.getData().getDataBuffer();
+            imgbuf = ByteBuffer.wrap(datbuf.getData());
+            return imgbuf;
+        }
 
     @Override
     public void dispose(GLAutoDrawable drawable) {}
@@ -248,14 +353,21 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        int dx = e.getX();
-        int dy = e.getY();
+        int x = e.getX();
+        int y = e.getY();
 
-        cameraRot[0] = cameraRot[0]+0.005f*dx;
-        cameraRot[1] = cameraRot[0]+0.005f*dy;
+        cameraRot[0] += (y-yMouse);
+        cameraRot[1] += (x-xMouse);
+        
+        xMouse = x;
+        yMouse = y;
     }
+
     @Override
-    public void mouseMoved(MouseEvent e){}
+    public void mouseMoved(MouseEvent e){
+        xMouse = e.getX();
+        yMouse = e.getY();
+    }
     
     public static void main(String[] args) {
         new Framework();

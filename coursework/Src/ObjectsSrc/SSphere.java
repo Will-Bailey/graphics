@@ -59,6 +59,9 @@ public class SSphere extends SObject{
 				vertices[3*k] = radius*normals[3*k];
 				vertices[3*k+1] = radius*normals[3*k+1];
 				vertices[3*k+2] = radius*normals[3*k+2];
+//				normals[3*k] = 0;
+//				normals[3*k+1] = 0;
+//				normals[3*k+2] = 1;
 				textures[2*k] = (float) j/slices;
 				textures[2*k+1] = 1-(float) i/stacks;
 				k++;
@@ -66,8 +69,8 @@ public class SSphere extends SObject{
 		}
 
 		//South pole point
-		//******************************************
-		//Add the normals and vertices at the South pole point
+		normals[3*k] = 0; normals[3*k+1] = 0; normals[3*k+2] = -1;
+		vertices[3*k] = 0; vertices[3*k+1] = 0; vertices[3*k+2] = -radius;		
 		textures[2*k] = 0.5f; textures[2*k+1] = 0.0f;  k++;
 
 		
@@ -77,25 +80,32 @@ public class SSphere extends SObject{
 		
 		k = 0;
 		//North Pole, numElement:slices*3 	
-		//******************************************
-		//Add here the indices in North Pole region
-		
+		for(j=1;j<=slices;j++){
+			indices[k++] = 0;
+			indices[k++] = j;
+			indices[k++] = j+1;
+		}
+
 		//South Pole, numElement:slices*3 
-		//******************************************
-		//Add here the indices in South Pole region
+		int temp = numVertices-1;
+		for(j=temp-1;j>temp-slices-1;j--){
+			indices[k++] = temp;
+			indices[k++] = j;
+			indices[k++] = j-1;
+		}
 
 		//Main body, numElement:(stacks-2)*slices*6 
 		for(i=1;i<stacks-1;i++){
 			for(j=1;j<=slices;j++){
 				//each quad gives two triangles
 				//triangle one
-				indices[k++] = (i-1)*slices+j;
-				indices[k++] = i*slices+j;
-				indices[k++] = i*slices+j+1;
+				indices[k++] = (i-1)*(slices+1)+j;
+				indices[k++] = i*(slices+1)+j;
+				indices[k++] = i*(slices+1)+j+1;
 				//triangle two
-				indices[k++] = (i-1)*slices+j;
-				indices[k++] = i*slices+j+1;
-				indices[k++] = (i-1)*slices+j+1;
+				indices[k++] = (i-1)*(slices+1)+j;
+				indices[k++] = i*(slices+1)+j+1;
+				indices[k++] = (i-1)*(slices+1)+j+1;
 			}
 		}
 	}	
