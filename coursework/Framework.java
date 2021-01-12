@@ -158,6 +158,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         ShaderProg texturer = new ShaderProg(gl, "ColourTex.vert", "ColourTex.frag");
         int tProgram = texturer.getProgram();
         gl.glUseProgram(tProgram);
+        importTexture(gl);
 
         //Init Shader
         ShaderProg shaderproc = new ShaderProg(gl, "Gouraud.vert", "Gouraud.frag");
@@ -170,6 +171,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         idBuffer=0;
         idElement=0;
         createObject(gl, sphere);
+        runTexture(gl, tProgram);
         runShader(gl, program);
 
         SObject teapot = new STeapot(2);
@@ -177,6 +179,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         idBuffer=1;
         idElement=1;
         createObject(gl, teapot);
+        //runTexture(gl, tProgram);
         runShader(gl, program);
 
         //Init Views
@@ -188,13 +191,9 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
     }
 
     @Override
-    public void reshape(GLAutoDrawable drawable, int x, int y, int w,
-            int h) {
-
+    public void reshape(GLAutoDrawable drawable, int x, int y, int w, int h) {
         GL3 gl = drawable.getGL().getGL3(); // Get the GL pipeline object this 
-        
         gl.glViewport(x, y, w, h);
-
         T.initialize();
 
         //projection
@@ -301,6 +300,17 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         gl.glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, false, 0, coordSize+colourSize);
         
         gl.glUniform1i( gl.glGetUniformLocation(tProgram, "tex"), 0 );
+    }
+
+    public void importTexture(GL3 gl){
+        try {
+                texImg = readImage("WelshDragon.jpg");
+            } catch (IOException ex) {
+                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+            }
+
+        gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, texImg);
+        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
     private ByteBuffer readImage(String filename) throws IOException {
