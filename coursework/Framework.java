@@ -336,25 +336,34 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
     public void keyPressed(KeyEvent e){
         char pressed = e.getKeyChar();
 
-        float step = 0.05f;
+        double step = 0.05;
             
         if (pressed == 'w'){
-            System.out.println("camera forward");
-            cameraPos[2] = cameraPos[2] + step;
+            cameraPos[0] = cameraPos[0] + (float) (step*Math.sin(Math.toRadians(cameraRot[1])));
+            cameraPos[1] = cameraPos[1] + (float) (step*Math.cos(Math.toRadians(cameraRot[0]))*Math.cos(Math.toRadians(cameraRot[1]))); 
+            cameraPos[2] = cameraPos[2] - (float) (step*Math.sin(Math.toRadians(cameraRot[0])));
 
         } else if (pressed == 'a'){
-            System.out.println("camera left");
-            cameraPos[0] = cameraPos[0] - step;
+            cameraPos[1] = cameraPos[1] + (float) (step*Math.sin(Math.toRadians(cameraRot[1])));
+            cameraPos[0] = cameraPos[0] - (float) (step*Math.cos(Math.toRadians(cameraRot[0]))*Math.cos(Math.toRadians(cameraRot[1]))); 
 
         } else if (pressed == 's'){
-            System.out.println("camera back");
-            cameraPos[2] = cameraPos[2] - step;
+            cameraPos[0] = cameraPos[0] - (float) (step*Math.sin(Math.toRadians(cameraRot[1])));
+            cameraPos[1] = cameraPos[1] - (float) (step*Math.cos(Math.toRadians(cameraRot[0]))*Math.cos(Math.toRadians(cameraRot[1]))); 
+            cameraPos[2] = cameraPos[2] + (float) (step*Math.sin(Math.toRadians(cameraRot[0])));
 
         } else if (pressed == 'd'){
-            System.out.println("camera right");
-            cameraPos[0] = cameraPos[0] + step;
+            cameraPos[1] = cameraPos[1] - (float) (step*Math.sin(Math.toRadians(cameraRot[1])));
+            cameraPos[0] = cameraPos[0] + (float) (step*Math.cos(Math.toRadians(cameraRot[0]))*Math.cos(Math.toRadians(cameraRot[1]))); 
+
+        } else if (pressed == 'r'){
+            cameraPos[0] = 0f;
+            cameraPos[1] = -10f;
+            cameraPos[2] = 0f;
+
+            cameraRot[0] = 0f;
+            cameraRot[1] = 0f;
         }
-        System.out.println(Float.toString(cameraPos[0]));
     }
 
     @Override
@@ -372,7 +381,12 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
 
         cameraRot[0] += (y-yMouse);
         cameraRot[1] += (x-xMouse);
-        
+
+        if (cameraRot[0]> 90){
+            cameraRot[0]= 90;}
+        if (cameraRot[0]<-90){
+            cameraRot[0]=-90;}
+
         xMouse = x;
         yMouse = y;
     }
