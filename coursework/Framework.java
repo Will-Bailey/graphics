@@ -113,7 +113,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         T.translate(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
         T.rotateX(cameraRot[0]);
         T.rotateY(cameraRot[1]);
-        //T.frustum(-1f, 1f, -1f, 1f, 1f, -1f);
+        T.frustum(-1f, 1f, -1f, 1f, 1f, -1f);
 
         T.scale(0.5f, 0.5f, 0.5f);
         T.rotateX(-90);
@@ -154,18 +154,13 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         gl.glGenBuffers(numVBOs, VBOs,0);
         gl.glGenBuffers(numEBOs, EBOs,0);
 
+        //Init Shader
+        ShaderProg shaderproc = new ShaderProg(gl, "Combine.vert", "Combine.frag");
+        int program = shaderproc.getProgram();
+        gl.glUseProgram(program);
 
         //Init Texture
-        ShaderProg texturer = new ShaderProg(gl, "ColourTex.vert", "ColourTex.frag");
-        int tProgram = texturer.getProgram();
-        int program = tProgram;
-        gl.glUseProgram(tProgram);
         importTexture(gl);
-
-        //Init Shader
-        ShaderProg shaderproc = new ShaderProg(gl, "Gouraud.vert", "Gouraud.frag");
-        program = shaderproc.getProgram();
-        gl.glUseProgram(program);
 
         //Init Views
         ModelView = gl.glGetUniformLocation(program, "ModelView");
@@ -178,16 +173,14 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         idBuffer=0;
         idElement=0;
         createObject(gl, sphere);
-        runTexture(gl, tProgram);
-        //runShader(gl, program);
+        runShader(gl, program);
 
         SObject teapot = new STeapot(2);
         idPoint=1;
         idBuffer=1;
         idElement=1;
         createObject(gl, teapot);
-        runTexture(gl, tProgram);
-        //runShader(gl, program);
+        runShader(gl, program);
 
 
         gl.glEnable(GL_DEPTH_TEST);
@@ -267,16 +260,24 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         gl.glEnableVertexAttribArray(vNormal);
         gl.glVertexAttribPointer(vNormal, 3, GL_FLOAT, false, 0, vertexSize);
         
+        vColour = gl.glGetAttribLocation(program, "vColour");
+        gl.glEnableVertexAttribArray(vColour);
+        gl.glVertexAttribPointer(vColour, 3, GL_FLOAT, false, 0, coordSize);
+
+        vTexCoord = gl.glGetAttribLocation(program, "vTexCoord");
+        gl.glEnableVertexAttribArray( vTexCoord );
+        gl.glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, false, 0, coordSize+colourSize);
+
         float[] lightPosition = {100.0f, 100.0f, 100.0f, 0.0f};
         Vec4 lightAmbient = new Vec4(1.0f, 1.0f, 1.0f, 1.0f);
         Vec4 lightDiffuse = new Vec4(1.0f, 1.0f, 1.0f, 1.0f);
         Vec4 lightSpecular = new Vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
         //Brass material
-        Vec4 materialAmbient = new Vec4(0.329412f, 0.223529f, 0.027451f, 1.0f);
-        Vec4 materialDiffuse = new Vec4(0.780392f, 0.568627f, 0.113725f, 1.0f);
-        Vec4 materialSpecular = new Vec4(0.992157f, 0.941176f, 0.807843f, 1.0f);
-        float  materialShininess = 27.8974f;
+        Vec4 materialAmbient = new Vec4(0.1745f, 0.01175f, 0.01175f, 0.55f);
+        Vec4 materialDiffuse = new Vec4(0.61424f, 0.04136f, 0.04136f, 0.55f);
+        Vec4 materialSpecular = new Vec4(0.727811f, 0.626959f, 0.626959f, 0.55f);
+        float  materialShininess = 76.8f;
         
         Vec4 ambientProduct = lightAmbient.times(materialAmbient);
         float[] ambient = ambientProduct.getVector();
@@ -291,6 +292,8 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         
         gl.glUniform4fv( gl.glGetUniformLocation(program, "LightPosition"), 1, lightPosition, 0);
         gl.glUniform1f( gl.glGetUniformLocation(program, "Shininess"), materialShininess);
+
+        gl.glUniform1i( gl.glGetUniformLocation(program, "tex"), 0 );
     }
 
     public void runTexture(GL3 gl, int tProgram){
@@ -307,7 +310,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
 
     public void importTexture(GL3 gl){
         try {
-                texImg = readImage("WelshDragon.jpg");
+                texImg = readImage("china.jpg");
             } catch (IOException ex) {
                 Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
             }

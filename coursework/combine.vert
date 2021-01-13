@@ -1,14 +1,19 @@
 #version 330 core
 
 layout(location = 0) in vec4 vPosition;
-layout(location = 1) in vec3 vColour;
-layout(location = 2) in vec2 vTexCoord;
+layout(location = 1) in vec3 vNormal;
+layout(location = 2) in vec3 vColour;
+layout(location = 3) in vec2 vTexCoord;
 
 out vec4 color;
 out vec2 texCoord;
 
 uniform mat4 ModelView;
+uniform mat4 NormalTransform;
 uniform mat4 Projection;
+uniform vec4 LightPosition;
+uniform vec4 AmbientProduct, DiffuseProduct, SpecularProduct;
+uniform float Shininess;
 
 void main()
 {
@@ -36,7 +41,7 @@ void main()
     color = ambient + diffuse + specular;
     texCoord    = vTexCoord;
 
-    color.rgb = 0.5*(vColour) + 0.5*(ambient + diffuse + specular);
+    color.rgb = vColour;
     color.a = 1.0;
-
+    color = (0.5*color) + 0.5*(ambient + diffuse + specular);
 }
