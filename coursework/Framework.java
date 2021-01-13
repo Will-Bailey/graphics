@@ -113,7 +113,8 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         T.translate(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
         T.rotateX(cameraRot[0]);
         T.rotateY(cameraRot[1]);
-        
+        //T.frustum(-1f, 1f, -1f, 1f, 1f, -1f);
+
         T.scale(0.5f, 0.5f, 0.5f);
         T.rotateX(-90);
         T.translate(0, -0.4f, 0);
@@ -157,35 +158,37 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         //Init Texture
         ShaderProg texturer = new ShaderProg(gl, "ColourTex.vert", "ColourTex.frag");
         int tProgram = texturer.getProgram();
+        int program = tProgram;
         gl.glUseProgram(tProgram);
         importTexture(gl);
 
         //Init Shader
         ShaderProg shaderproc = new ShaderProg(gl, "Gouraud.vert", "Gouraud.frag");
-        int program = shaderproc.getProgram();
+        program = shaderproc.getProgram();
         gl.glUseProgram(program);
 
-        //Init Objects      
+        //Init Views
+        ModelView = gl.glGetUniformLocation(program, "ModelView");
+        Projection = gl.glGetUniformLocation(program, "Projection");
+        NormalTransform = gl.glGetUniformLocation(program, "NormalTransform");
+        
+        //Init Objects
         SObject sphere = new SSphere(1, 40, 40);
         idPoint=0;
         idBuffer=0;
         idElement=0;
         createObject(gl, sphere);
         runTexture(gl, tProgram);
-        runShader(gl, program);
+        //runShader(gl, program);
 
         SObject teapot = new STeapot(2);
         idPoint=1;
         idBuffer=1;
         idElement=1;
         createObject(gl, teapot);
-        //runTexture(gl, tProgram);
-        runShader(gl, program);
+        runTexture(gl, tProgram);
+        //runShader(gl, program);
 
-        //Init Views
-        ModelView = gl.glGetUniformLocation(program, "ModelView");
-        Projection = gl.glGetUniformLocation(program, "Projection");
-        NormalTransform = gl.glGetUniformLocation(program, "NormalTransform");
 
         gl.glEnable(GL_DEPTH_TEST);
     }
