@@ -43,5 +43,5 @@ void main()
 
     color.rgb = vColour;
     color.a = 1.0;
-    color = (0.5*color) + 0.5*(ambient + diffuse + specular);
+    color = color + ambient + diffuse + specular;
 }

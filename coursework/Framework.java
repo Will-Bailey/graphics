@@ -10,6 +10,8 @@ import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
 import com.jogamp.opengl.util.FPSAnimator;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureIO;
 
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
@@ -20,8 +22,9 @@ import java.awt.image.DataBufferByte;
 
 import javax.imageio.ImageIO;
 
-import java.io.IOException;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -37,7 +40,6 @@ import Objects.*;
 public class Framework extends JFrame implements KeyListener,  GLEventListener, MouseMotionListener{
     final GLCanvas canvas;
     final FPSAnimator animator=new FPSAnimator(60, true);
-
     private Transform T = new Transform();
 
     private int xMouse;
@@ -45,13 +47,14 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
     private float[] cameraPos = new float[3];
     private float[] cameraRot = new float[2];
 
-    private int idPoint=0, numVAOs = 2;
-    private int idBuffer=0, numVBOs = 2;
-    private int idElement=0, numEBOs = 2;
+    private int idPoint=0, numVAOs = 3;
+    private int idBuffer=0, numVBOs = 3;
+    private int idElement=0, numEBOs = 3;
     private int[] VAOs = new int[numVAOs];
     private int[] VBOs = new int[numVBOs];
     private int[] EBOs = new int[numEBOs];
 
+    private Texture texture;
     private int[] numElements = new int[numEBOs];
     private int vPosition;
     private int vColour;
@@ -63,10 +66,12 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
     long texSize;
     long vertexSize;
     long normalSize;
+    long indexSize;
 
     float[] vertexCoord = {0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0};
     float[] texCoord = {0, 0, 1, 0, 0, 1, 1, 1};
-    float[] vertexColours = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    //float[] vertexColours = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    float[] vertexColours = {0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1};
     int[] vertexIndexs = {0, 1, 2, 2, 1, 3};
     
     private int ModelView;
@@ -80,7 +85,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         super("KeyListener Activity");
         
         cameraPos[0] = 0f;
-        cameraPos[1] = 0f;
+        cameraPos[1] = -10f;
         cameraPos[2] = 0f;
 
         cameraRot[0] = 0f;
@@ -108,39 +113,40 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         GL3 gl = drawable.getGL().getGL3(); // Get the GL pipeline object this 
         
         gl.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-        
+
         T.initialize();
         T.translate(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
         T.rotateX(cameraRot[0]);
-        T.rotateY(cameraRot[1]);
-        T.frustum(-1f, 1f, -1f, 1f, 1f, -1f);
+        T.rotateZ(cameraRot[1]);
 
-        T.scale(0.5f, 0.5f, 0.5f);
+        T.scale(0.3f, 0.3f, 0.3f);
         T.rotateX(-90);
-        T.translate(0, -0.4f, 0);
-
+        T.translate(0, -0.4f, 0f);
         gl.glUniformMatrix4fv(ModelView, 1, true, T.getTransformv(), 0);          
         gl.glUniformMatrix4fv(NormalTransform, 1, true, T.getInvTransformTv(), 0);
+        idPoint=1;
+        idBuffer=1;
+        idElement=1;
+        bindObject(gl);
+        gl.glDrawElements(GL_TRIANGLES, numElements[idElement], GL_UNSIGNED_INT, 0);
         
+        T.translate(0, 0.7f, 0);
+        gl.glUniformMatrix4fv(ModelView, 1, true, T.getTransformv(), 0);          
+        gl.glUniformMatrix4fv(NormalTransform, 1, true, T.getInvTransformTv(), 0);
         idPoint=0;
         idBuffer=0;
         idElement=0;
         bindObject(gl);
         gl.glDrawElements(GL_TRIANGLES, numElements[idElement], GL_UNSIGNED_INT, 0);
 
-        T.scale(0.5f,0.5f,0.5f);
-        T.translate(0, 0.7f, 0);
-
-
-        gl.glUniformMatrix4fv(ModelView, 1, true, T.getTransformv(), 0 );
-        gl.glUniformMatrix4fv(NormalTransform, 1, true, T.getInvTransformTv(), 0 );
-
-        idPoint=1;
-        idBuffer=1;
-        idElement=1;
+        T.translate(0, 0.5f, 0);
+        gl.glUniformMatrix4fv(ModelView, 1, true, T.getTransformv(), 0);          
+        gl.glUniformMatrix4fv(NormalTransform, 1, true, T.getInvTransformTv(), 0);
+        idPoint=2;
+        idBuffer=2;
+        idElement=2;
         bindObject(gl);
         gl.glDrawElements(GL_TRIANGLES, numElements[idElement], GL_UNSIGNED_INT, 0);
-
     }
     
     @Override
@@ -168,11 +174,11 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         NormalTransform = gl.glGetUniformLocation(program, "NormalTransform");
         
         //Init Objects
-        SObject sphere = new SSphere(1, 40, 40);
+        SObject tPrism = new STPrism(1f, 1f);
         idPoint=0;
         idBuffer=0;
         idElement=0;
-        createObject(gl, sphere);
+        createObject(gl, tPrism);
         runShader(gl, program);
 
         SObject teapot = new STeapot(2);
@@ -182,6 +188,12 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         createObject(gl, teapot);
         runShader(gl, program);
 
+        SObject sphere = new SSphere(1);
+        idPoint=2;
+        idBuffer=2;
+        idElement=2;
+        createObject(gl, sphere);
+        runShader(gl, program);
 
         gl.glEnable(GL_DEPTH_TEST);
     }
@@ -189,23 +201,20 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
     @Override
     public void reshape(GLAutoDrawable drawable, int x, int y, int w, int h) {
         GL3 gl = drawable.getGL().getGL3(); // Get the GL pipeline object this 
-        gl.glViewport(x, y, w, h);
-        T.initialize();
+            
+            gl.glViewport(x, y, w, h);
 
-        //projection
-        if(h<1){h=1;}
-        if(w<1){w=1;}           
-        float a = (float) w/ h;   //aspect 
-        if (w < h) {
-            T.ortho(-1, 1, -1/a, 1/a, -1, 1);
-        }
-        else{
-            T.ortho(-1*a, 1*a, -1, 1, -1, 1);
-        }
-        
-        // Convert right-hand to left-hand coordinate system
-        T.reverseZ();
-        gl.glUniformMatrix4fv( Projection, 1, true, T.getTransformv(), 0 );         
+            T.initialize();
+
+            //projection
+            if(h<1){h=1;}
+            if(w<1){w=1;}           
+            float a = (float) w/ h;
+            T.perspective(60, a, 0.1f, 1000);
+            
+            // Convert right-hand to left-hand coordinate system
+            T.reverseZ();
+            gl.glUniformMatrix4fv(Projection, 1, true, T.getTransformv(), 0 );         
 
     }
 
@@ -239,7 +248,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         gl.glBufferSubData(GL_ARRAY_BUFFER, vertexSize, normalSize, normals);
         
         IntBuffer elements = IntBuffer.wrap(vertexIndexs);
-        long indexSize = vertexIndexs.length*(Integer.SIZE/8);
+        indexSize = vertexIndexs.length*(Integer.SIZE/8);
         gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, elements, GL_STATIC_DRAW);
         gl.glEnableVertexAttribArray(vPosition);
         gl.glVertexAttribPointer(vPosition, 3, GL_FLOAT, false, 0, 0L);
@@ -253,7 +262,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
 
     public void runShader(GL3 gl, int program){
         vPosition = gl.glGetAttribLocation( program, "vPosition" );
-        gl.glGetAttribLocation( program, "vNormal" );
+        gl.glEnableVertexAttribArray(vPosition);
         gl.glVertexAttribPointer(vPosition, 3, GL_FLOAT, false, 0, 0L);
 
         vNormal = gl.glGetAttribLocation(program, "vNormal");
@@ -262,21 +271,20 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         
         vColour = gl.glGetAttribLocation(program, "vColour");
         gl.glEnableVertexAttribArray(vColour);
-        gl.glVertexAttribPointer(vColour, 3, GL_FLOAT, false, 0, coordSize);
+        gl.glVertexAttribPointer(vColour, 3, GL_FLOAT, false, 0, vertexSize+coordSize);
 
         vTexCoord = gl.glGetAttribLocation(program, "vTexCoord");
         gl.glEnableVertexAttribArray( vTexCoord );
-        gl.glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, false, 0, coordSize+colourSize);
+        gl.glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, false, 0, vertexSize+coordSize+colourSize);
 
         float[] lightPosition = {100.0f, 100.0f, 100.0f, 0.0f};
         Vec4 lightAmbient = new Vec4(1.0f, 1.0f, 1.0f, 1.0f);
         Vec4 lightDiffuse = new Vec4(1.0f, 1.0f, 1.0f, 1.0f);
         Vec4 lightSpecular = new Vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-        //Brass material
-        Vec4 materialAmbient = new Vec4(0.1745f, 0.01175f, 0.01175f, 0.55f);
-        Vec4 materialDiffuse = new Vec4(0.61424f, 0.04136f, 0.04136f, 0.55f);
-        Vec4 materialSpecular = new Vec4(0.727811f, 0.626959f, 0.626959f, 0.55f);
+        Vec4 materialAmbient = new Vec4(0.25f, 0.25f, 0.25f, 1f);
+        Vec4 materialDiffuse = new Vec4(0.4f, 0.2368f, 0.1036f, 1f);
+        Vec4 materialSpecular = new Vec4(0.774597f, 0.4585161f, 0.200621f, 1f);
         float  materialShininess = 76.8f;
         
         Vec4 ambientProduct = lightAmbient.times(materialAmbient);
@@ -286,50 +294,40 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         Vec4 specularProduct = lightSpecular.times(materialSpecular);
         float[] specular = specularProduct.getVector();
 
-        gl.glUniform4fv( gl.glGetUniformLocation(program, "AmbientProduct"), 1, ambient, 0);
-        gl.glUniform4fv( gl.glGetUniformLocation(program, "DiffuseProduct"), 1, diffuse, 0);
-        gl.glUniform4fv( gl.glGetUniformLocation(program, "SpecularProduct"), 1, specular, 0);
+        gl.glUniform4fv(gl.glGetUniformLocation(program, "AmbientProduct"), 1, ambient, 0);
+        gl.glUniform4fv(gl.glGetUniformLocation(program, "DiffuseProduct"), 1, diffuse, 0);
+        gl.glUniform4fv(gl.glGetUniformLocation(program, "SpecularProduct"), 1, specular, 0);
         
-        gl.glUniform4fv( gl.glGetUniformLocation(program, "LightPosition"), 1, lightPosition, 0);
-        gl.glUniform1f( gl.glGetUniformLocation(program, "Shininess"), materialShininess);
+        gl.glUniform4fv(gl.glGetUniformLocation(program, "LightPosition"), 1, lightPosition, 0);
+        gl.glUniform1f(gl.glGetUniformLocation(program, "Shininess"), materialShininess);
 
-        gl.glUniform1i( gl.glGetUniformLocation(program, "tex"), 0 );
-    }
-
-    public void runTexture(GL3 gl, int tProgram){
-        vColour = gl.glGetAttribLocation(tProgram, "vColour");
-        gl.glEnableVertexAttribArray(vColour);
-        gl.glVertexAttribPointer(vColour, 3, GL_FLOAT, false, 0, coordSize);
-
-        vTexCoord = gl.glGetAttribLocation(tProgram, "vTexCoord");
-        gl.glEnableVertexAttribArray( vTexCoord );
-        gl.glVertexAttribPointer( vTexCoord, 2, GL_FLOAT, false, 0, coordSize+colourSize);
-        
-        gl.glUniform1i( gl.glGetUniformLocation(tProgram, "tex"), 0 );
+        gl.glUniform1i(gl.glGetUniformLocation(program, "tex"), 0 );
     }
 
     public void importTexture(GL3 gl){
         try {
-                texImg = readImage("china.jpg");
-            } catch (IOException ex) {
-                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-            }
-
-        gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, texImg);
-        gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    }
-
-    private ByteBuffer readImage(String filename) throws IOException {
-
-            ByteBuffer imgbuf;
-            BufferedImage img = ImageIO.read(new FileInputStream(filename));
-
-            texWidth = img.getWidth();
-            texHeight = img.getHeight();
-            DataBufferByte datbuf = (DataBufferByte) img.getData().getDataBuffer();
-            imgbuf = ByteBuffer.wrap(datbuf.getData());
-            return imgbuf;
+            texture = TextureIO.newTexture(new File("hex.jpg"), false);
+        } catch (IOException ex) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
         }
+
+        //texture.setTexParameteri(gl, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        //texture.setTexParameteri(gl, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        //texture.setTexParameteri(gl, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        //texture.setTexParameteri(gl, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+        texCoord[0] = texture.getImageTexCoords().left(); 
+        texCoord[1] = texture.getImageTexCoords().bottom();
+        texCoord[2] = texture.getImageTexCoords().right();    
+        texCoord[3] = texture.getImageTexCoords().bottom();
+        texCoord[4] = texture.getImageTexCoords().left(); 
+        texCoord[5] = texture.getImageTexCoords().top();
+        texCoord[6] = texture.getImageTexCoords().right();    
+        texCoord[7] = texture.getImageTexCoords().top();
+
+        //gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, texImg);
+        //gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
 
     @Override
     public void dispose(GLAutoDrawable drawable) {}
