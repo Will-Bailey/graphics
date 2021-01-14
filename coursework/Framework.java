@@ -163,12 +163,12 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         gl.glGenBuffers(numEBOs, EBOs,0);
 
         //Init Shader
-        ShaderProg shaderproc = new ShaderProg(gl, "Gouraud.vert", "Gouraud.frag");
+        ShaderProg shaderproc = new ShaderProg(gl, "combine.vert", "combine.frag");
         int program = shaderproc.getProgram();
         gl.glUseProgram(program);
 
         //Init Texture
-        importTexture(gl);
+        importTexture(gl, "hex.jpg");
 
         //Init Views
         ModelView = gl.glGetUniformLocation(program, "ModelView");
@@ -182,6 +182,8 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         idElement=0;
         createObject(gl, tPrism);
         runShader(gl, program);
+
+        //importTexture(gl, "plain.jpg");
 
         SObject teapot = new STeapot(2);
         idPoint=1;
@@ -306,9 +308,9 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         gl.glUniform1i(gl.glGetUniformLocation(program, "tex"), 0 );
     }
 
-    public void importTexture(GL3 gl){
+    public void importTexture(GL3 gl, String filename){
         try {
-            texture = TextureIO.newTexture(new File("hex.jpg"), false);
+            texture = TextureIO.newTexture(new File(filename), false);
         } catch (IOException ex) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
         }
@@ -357,6 +359,12 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         } else if (pressed == 'd'){
             cameraPos[1] = cameraPos[1] - (float) (step*Math.sin(Math.toRadians(cameraRot[1])));
             cameraPos[0] = cameraPos[0] + (float) (step*Math.cos(Math.toRadians(cameraRot[0]+90))*Math.cos(Math.toRadians(cameraRot[1]))); 
+
+        } else if (pressed == 'x'){
+            cameraPos[2] = cameraPos[2] + (float) step;
+
+        } else if (pressed == 'c'){
+            cameraPos[2] = cameraPos[2] - (float) step;
 
         } else if (pressed == 'r'){
             cameraPos[0] = 0f;
