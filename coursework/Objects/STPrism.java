@@ -37,22 +37,28 @@ public class STPrism extends SObject{
         vertices[15]=0;          vertices[16]=sideLength; vertices[17]=height;
 
         normals[0]=sideLength;  normals[1]=0;  normals[2]=0;
-        normals[3]=sideLength;  normals[4]=0;  normals[5]=0;
-        normals[6]=sideLength;  normals[7]=0;  normals[8]=0;
-        normals[9]=sideLength;  normals[10]=0; normals[11]=0;
-        normals[12]=sideLength; normals[13]=0; normals[14]=0;
-        normals[15]=sideLength; normals[16]=0; normals[17]=0;
+        normals[3]=-sideLength;  normals[4]=0;  normals[5]=0;
+        normals[6]=-sideLength;  normals[7]=0;  normals[8]=0;
+        normals[9]=-sideLength;  normals[10]=0; normals[11]=0;
+        normals[12]=-sideLength; normals[13]=0; normals[14]=0;
+        normals[15]=-sideLength; normals[16]=0; normals[17]=0;
 
-        numIndices = 25;
+        numIndices = 29;
         indices = new int[numIndices];
         
+        
         indices[0]=0;  indices[1]=1;  indices[2]=2;  indices[3]=0;
-        indices[4]=0;  indices[5]=1;  indices[6]=3;  indices[7]=0;
+
+        indices[4]=0;  indices[5]=1;  indices[6]=3;  indices[7]=0;  
         indices[8]=1;  indices[9]=4;  indices[10]=3; indices[11]=1;
+
         indices[12]=1; indices[13]=2; indices[14]=5; indices[15]=1;
-        indices[16]=4; indices[17]=5; indices[18]=2; indices[19]=4;
+        indices[16]=4; indices[17]=2; indices[18]=5; indices[19]=4;
+
         indices[20]=2; indices[21]=0; indices[22]=5; indices[23]=2;
-        indices[21]=5; indices[22]=3; indices[23]=2; indices[24]=5;
+        indices[21]=5; indices[22]=2; indices[23]=3; indices[24]=5;
+
+        indices[25]=3; indices[26]=4; indices[27]=5; indices[28]=3;
     }
 
     public void setSideLength(float sideLength){

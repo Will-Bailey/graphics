@@ -118,7 +118,6 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         T.translate(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
         T.rotateX(cameraRot[0]);
         T.rotateY(cameraRot[1]);
-        T.rotateY(0);
 
         T.scale(0.3f, 0.3f, 0.3f);
         //T.rotateX(-90);
@@ -366,7 +365,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
 
             cameraRot[0] = -90f;
             cameraRot[1] = 0f;
-            
+
         } else if (pressed =='f'){
             System.out.println("cameraPos[0]: " + cameraPos[0]);
             System.out.println("cameraPos[1]: " + cameraPos[1]);
@@ -389,7 +388,7 @@ public class Framework extends JFrame implements KeyListener,  GLEventListener, 
         int x = e.getX();
         int y = e.getY();
 
-        cameraRot[0] += (y-yMouse);
+        //cameraRot[0] += (y-yMouse);
         cameraRot[1] += (x-xMouse);
 
         if (cameraRot[0]> 0){
